@@ -88,7 +88,7 @@ impl Builder {
                             .parse::<Uri>()
                             .map(|uri| uri.path().into())
                             .unwrap_or_else(|_| req.url().into());
-
+                        println!("path: {}", path);
                         #[allow(unused_mut)]
                         if let Some(mut asset) = asset_resolver.get(path) {
                             let request = Request {
@@ -116,6 +116,8 @@ impl Builder {
                                 }
                             }
                             req.respond(resp).expect("unable to setup response");
+                        } else {
+                            println!("asset not found");
                         }
                     }
                 });
