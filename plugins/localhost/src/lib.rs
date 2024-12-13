@@ -118,6 +118,10 @@ impl Builder {
                             req.respond(resp).expect("unable to setup response");
                         } else {
                             println!("asset not found");
+                            let mut resp = HttpResponse::empty(404);
+                            resp.add_header(Header::from_bytes("Content-Type", "text/html").unwrap());
+                            resp.add_header(Header::from_bytes("Content-Security-Policy", "default-src 'none'").unwrap());
+                            req.respond(resp).expect("unable to setup response");
                         }
                     }
                 });
