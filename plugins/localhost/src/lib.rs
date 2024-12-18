@@ -124,6 +124,7 @@ impl Builder {
                                 let dev_url = dev_url.as_ref().unwrap();
                                 let url = dev_url.join(&path).unwrap();
                                 log::debug!("fetching dev server asset: {}", url);
+                                println!("fetching dev server asset: {}", url);
                                 match ureq::get(url.as_str()).call() {
                                     Ok(response) => {
                                         let headers = response.headers_names();
@@ -136,9 +137,9 @@ impl Builder {
                                             })
                                             .collect::<HashMap<_, _>>();
                                         let content_len =
-                                            response.header("Content-Length").unwrap();
+                                            response.header("Content-Length").unwrap_or("1024");
                                         let content_len =
-                                            content_len.parse::<usize>().unwrap_or(1024);
+                                            content_len.parse::<usize>().unwrap();
                                         let mut buffer = vec![0; content_len];
                                         response.into_reader().read_to_end(&mut buffer).unwrap();
                                         buffer.shrink_to_fit();
