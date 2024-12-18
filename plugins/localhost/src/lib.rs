@@ -1,179 +1,231 @@
-// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
-// SPDX-License-Identifier: Apache-2.0
-// SPDX-License-Identifier: MIT
-
-//! Expose your apps assets through a localhost server instead of the default custom protocol.
-//!
-//! **Note: This plugins brings considerable security risks and you should only use it if you know what your are doing. If in doubt, use the default custom protocol implementation.**
-
-#![doc(
-    html_logo_url = "https://github.com/tauri-apps/tauri/raw/dev/app-icon.png",
-    html_favicon_url = "https://github.com/tauri-apps/tauri/raw/dev/app-icon.png"
-)]
-
 use std::collections::HashMap;
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use std::sync::Arc;
 
-use http::Uri;
+use futures_util::SinkExt;
+use futures_util::StreamExt;
+use http::HeaderName;
+use http::HeaderValue;
+use http_body_util::BodyExt;
+use http_body_util::Full;
+use hyper::body::{Bytes, Incoming};
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
+use hyper::{Request, Response};
+use hyper_tungstenite::{HyperWebsocket, WebSocketStream};
+use hyper_util::rt::TokioIo;
+use tauri::AssetResolver;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Runtime,
 };
-use tiny_http::{Header, Response as HttpResponse, Server};
+use tokio::net::TcpListener;
+use tokio::sync::RwLock;
+use tungstenite::protocol::Message;
 
-pub struct Request {
+type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+type BoxBody = http_body_util::combinators::BoxBody<Bytes, Infallible>;
+
+pub struct LocalRequest {
     url: String,
-}
-
-impl Request {
-    pub fn url(&self) -> &str {
-        &self.url
-    }
-}
-
-pub struct Response {
     headers: HashMap<String, String>,
 }
 
-impl Response {
+impl LocalRequest {
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+}
+
+pub struct LocalResponse {
+    headers: HashMap<String, String>,
+}
+
+impl LocalResponse {
     pub fn add_header<H: Into<String>, V: Into<String>>(&mut self, header: H, value: V) {
         self.headers.insert(header.into(), value.into());
     }
 }
 
-type OnRequest = Option<Box<dyn Fn(&Request, &mut Response) + Send + Sync>>;
-
 pub struct Builder {
     port: u16,
     host: Option<String>,
-    on_request: OnRequest,
 }
 
 impl Builder {
     pub fn new(port: u16) -> Self {
-        Self {
-            port,
-            host: None,
-            on_request: None,
-        }
+        Self { port, host: None }
     }
 
-    // Change the host the plugin binds to. Defaults to `localhost`.
     pub fn host<H: Into<String>>(mut self, host: H) -> Self {
         self.host = Some(host.into());
         self
     }
 
-    pub fn on_request<F: Fn(&Request, &mut Response) + Send + Sync + 'static>(
-        mut self,
-        f: F,
-    ) -> Self {
-        self.on_request.replace(Box::new(f));
-        self
-    }
-
-    pub fn build<R: Runtime>(mut self) -> TauriPlugin<R> {
+    pub fn build<R: Runtime>(self) -> TauriPlugin<R> {
         let port = self.port;
-        let host = self.host.unwrap_or("localhost".to_string());
-        let on_request = self.on_request.take();
+        let host = self.host.unwrap_or_else(|| "127.0.0.1".to_string());
 
         PluginBuilder::new("localhost")
             .setup(move |app, _api| {
                 let asset_resolver = app.asset_resolver();
                 let dev_url = app.config().build.dev_url.clone();
                 let is_dev = tauri::is_dev();
-                std::thread::spawn(move || {
-                    let server =
-                        Server::http(format!("{host}:{port}")).expect("Unable to spawn server");
-                    for req in server.incoming_requests() {
-                        let path: String = req
-                            .url()
-                            .parse::<Uri>()
-                            .map(|uri| uri.path().into())
-                            .unwrap_or_else(|_| req.url().into());
-                        println!("path: {}", path);
-                        #[allow(unused_mut)]
-                        if let Some(mut asset) = asset_resolver.get(path.clone()) {
-                            let request = Request {
-                                url: req.url().into(),
-                            };
-                            let mut response = Response {
-                                headers: Default::default(),
-                            };
 
-                            response.add_header("Content-Type", asset.mime_type);
-                            if let Some(csp) = asset.csp_header {
-                                response
-                                    .headers
-                                    .insert("Content-Security-Policy".into(), csp);
-                            }
+                let asset_resolver = Arc::new(RwLock::new(asset_resolver));
 
-                            if let Some(on_request) = &on_request {
-                                on_request(&request, &mut response);
-                            }
+                let server = async move {
+                    let addr: SocketAddr = format!("{}:{}", host, port).parse().unwrap();
+                    log::info!("Listening on http://{}", addr);
 
-                            let mut resp = HttpResponse::from_data(asset.bytes);
-                            for (header, value) in response.headers {
-                                if let Ok(h) = Header::from_bytes(header.as_bytes(), value) {
-                                    resp.add_header(h);
-                                }
-                            }
-                            req.respond(resp).expect("unable to setup response");
-                        } else {
-                            if is_dev && dev_url.is_some() {
-                                // try to pipe the request path to the dev server
-                                let dev_url = dev_url.as_ref().unwrap();
-                                let url = dev_url.join(&path).unwrap();
-                                log::debug!("fetching dev server asset: {}", url);
-                                println!("fetching dev server asset: {}", url);
-                                match ureq::get(url.as_str()).call() {
-                                    Ok(response) => {
-                                        let headers = response.headers_names();
-                                        let headers = headers
-                                            .into_iter()
-                                            .map(|header| {
-                                                let value =
-                                                    response.header(&header).unwrap().to_string();
-                                                (header, value)
-                                            })
-                                            .collect::<HashMap<_, _>>();
-                                        let content_len =
-                                            response.header("Content-Length").unwrap_or("1024");
-                                        let content_len = content_len.parse::<usize>().unwrap();
-                                        let mut buffer = vec![0; content_len];
-                                        response.into_reader().read_to_end(&mut buffer).unwrap();
-                                        // clear buffer start U+0000 chars
-                                        buffer =
-                                            buffer.into_iter().skip_while(|&c| c == 0).collect();
-                                        let mut resp = HttpResponse::from_data(buffer);
-                                        for (header, value) in headers {
-                                            if let Ok(h) =
-                                                Header::from_bytes(header.as_bytes(), value)
-                                            {
-                                                resp.add_header(h);
+                    let listener = TcpListener::bind(addr).await.unwrap();
+
+                    let handle_request_handler = move |req: Request<Incoming>| {
+                        let asset_resolver = asset_resolver.clone();
+                        let dev_url = dev_url.clone();
+
+                        async move {
+                            if hyper_tungstenite::is_upgrade_request(&req) {
+                                let path = req.uri().path().to_string();
+                                let (response, websocket) = hyper_tungstenite::upgrade(req, None)?;
+
+                                tokio::spawn(async move {
+                                    // pipe to devUrl websocket
+                                    // assert dev_url is Some
+                                    let dev_url = dev_url.clone().unwrap();
+                                    let mut proxy_url = dev_url.join(&path).unwrap();
+                                    proxy_url.set_scheme("ws").unwrap();
+                                    let handle_ws = move |ws: HyperWebsocket| async move {
+                                        let websocket = ws.await?;
+                                        let (mut server_write, mut server_read) = websocket.split();
+                                        // connect to dev server
+                                        let (socket, _client_response) =
+                                            tokio_tungstenite::connect_async(proxy_url.as_str())
+                                                .await?;
+                                        let (mut client_write, mut client_read) = socket.split();
+                                        tokio::spawn(async move {
+                                            while let Some(Ok(message)) = client_read.next().await {
+                                                if let Err(e) = server_write.send(message).await {
+                                                    log::error!(
+                                                        "Error sending message to server: {e}"
+                                                    );
+                                                }
+                                            }
+                                        });
+                                        while let Some(Ok(message)) = server_read.next().await {
+                                            if let Err(e) = client_write.send(message).await {
+                                                log::error!("Error sending message to client: {e}");
                                             }
                                         }
-                                        req.respond(resp).expect("unable to setup response");
-                                        continue;
+                                        Ok::<(), Error>(())
+                                    };
+                                    if let Err(e) = handle_ws(websocket).await {
+                                        eprintln!("Error in websocket connection: {e}");
                                     }
-                                    Err(e) => {
-                                        log::error!("failed to fetch dev server asset: {}", e);
+                                });
+
+                                return Ok::<_, Error>(response);
+                            }
+                            let path = req.uri().path().to_string();
+                            let resolver = asset_resolver.read().await;
+
+                            if let Some(asset) = resolver.get(path.clone()) {
+                                let mut local_response = LocalResponse {
+                                    headers: Default::default(),
+                                };
+
+                                local_response.add_header("Content-Type", &asset.mime_type);
+                                if let Some(csp) = asset.csp_header {
+                                    local_response.add_header("Content-Security-Policy", &csp);
+                                }
+
+                                let mut response = Response::builder();
+                                for (name, value) in local_response.headers {
+                                    if let Ok(header_name) = name.parse::<HeaderName>() {
+                                        if let Ok(header_value) = value.parse::<HeaderValue>() {
+                                            response = response.header(header_name, header_value);
+                                        }
                                     }
                                 }
-                            }
+                                let response = response.body(Full::from(asset.bytes))?;
+                                Ok(response)
+                            } else if is_dev && dev_url.is_some() {
+                                // Proxy to dev server
+                                let client = reqwest::Client::new();
+                                let dev_url = dev_url.clone().unwrap();
+                                let url = dev_url.join(&path).unwrap();
 
-                            log::debug!("asset not found");
-                            let mut resp = HttpResponse::empty(404);
-                            resp.add_header(
-                                Header::from_bytes("Content-Type", "text/html").unwrap(),
-                            );
-                            resp.add_header(
-                                Header::from_bytes("Content-Security-Policy", "default-src 'none'")
-                                    .unwrap(),
-                            );
-                            req.respond(resp).expect("unable to setup response");
+                                let mut proxy_req = client.request(req.method().clone(), url);
+
+                                // Copy headers
+                                for (name, value) in req.headers() {
+                                    proxy_req = proxy_req.header(name, value);
+                                }
+
+                                match proxy_req.send().await {
+                                    Ok(proxy_res) => {
+                                        let mut response =
+                                            Response::builder().status(proxy_res.status());
+
+                                        // Copy response headers
+                                        for (name, value) in proxy_res.headers() {
+                                            response = response.header(name, value);
+                                        }
+
+                                        let body = proxy_res.bytes().await.unwrap_or_default();
+                                        let response = response.body(Full::from(body))?;
+                                        Ok(response)
+                                    }
+                                    Err(_) => Ok(Response::builder()
+                                        .status(hyper::StatusCode::BAD_GATEWAY)
+                                        .body(Full::default())?),
+                                }
+                            } else {
+                                Ok(Response::builder()
+                                    .status(hyper::StatusCode::NOT_FOUND)
+                                    .header("Content-Type", "text/html")
+                                    .header("Content-Security-Policy", "default-src 'none'")
+                                    .body(Full::default())?)
+                            }
+                        }
+                    };
+
+                    loop {
+                        if let Ok((stream, _)) = listener.accept().await {
+                            let mut http = hyper::server::conn::http1::Builder::new();
+                            http.keep_alive(true);
+                            let connection = http
+                                .serve_connection(
+                                    TokioIo::new(stream),
+                                    service_fn(handle_request_handler.clone()),
+                                )
+                                .with_upgrades();
+                            tokio::spawn(connection);
                         }
                     }
-                });
+                };
+                let handle = tokio::runtime::Handle::try_current();
+                match handle {
+                    Ok(handle) => {
+                        handle.spawn(server);
+                    }
+                    Err(_) => {
+                        std::thread::spawn(move || {
+                            let rt = tokio::runtime::Builder::new_multi_thread()
+                                .enable_all()
+                                .build()
+                                .unwrap();
+                            rt.block_on(server);
+                        });
+                    }
+                }
+
                 Ok(())
             })
             .build()

@@ -2779,6 +2779,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper-tungstenite"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e39177c6ae1053b3ce521be6dddd33ad1621b35cfc561f54ea5e08302a2a89b3"
+dependencies = [
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "pin-project-lite",
+ "tokio",
+ "tokio-tungstenite 0.25.0",
+ "tungstenite 0.25.0",
+]
+
+[[package]]
 name = "hyper-util"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4774,7 +4789,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "socket2",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
  "tracing",
 ]
@@ -4793,7 +4808,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tinyvec",
  "tracing",
  "web-time",
@@ -5234,7 +5249,6 @@ version = "0.23.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "934b404430bb06b3fae2cba809eb45a1ab1aecd64491213d7c3301b88393f8d1"
 dependencies = [
- "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -6364,7 +6378,7 @@ dependencies = [
  "tauri-runtime",
  "tauri-runtime-wry",
  "tauri-utils",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
  "tray-icon",
  "url",
@@ -6420,7 +6434,7 @@ dependencies = [
  "sha2",
  "syn 2.0.90",
  "tauri-utils",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "time",
  "url",
  "uuid",
@@ -6467,7 +6481,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6479,7 +6493,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6492,7 +6506,7 @@ dependencies = [
  "serde_repr",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6505,7 +6519,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6518,7 +6532,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6532,7 +6546,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tauri-utils",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tracing",
  "url",
  "windows-registry 0.3.0",
@@ -6551,7 +6565,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tauri-plugin-fs",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "url",
 ]
 
@@ -6572,7 +6586,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tauri-utils",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "toml 0.8.19",
  "url",
  "uuid",
@@ -6588,7 +6602,7 @@ dependencies = [
  "specta",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6601,7 +6615,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6614,7 +6628,7 @@ dependencies = [
  "specta",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6631,7 +6645,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tauri-plugin-fs",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
  "tracing",
  "url",
@@ -6642,15 +6656,21 @@ dependencies = [
 name = "tauri-plugin-localhost"
 version = "2.2.0"
 dependencies = [
+ "futures-util",
  "http",
+ "http-body-util",
  "hyper",
+ "hyper-tungstenite",
+ "hyper-util",
  "log",
+ "reqwest",
  "serde",
  "serde_json",
  "tauri",
- "thiserror 2.0.3",
- "tiny_http",
- "ureq",
+ "thiserror 2.0.8",
+ "tokio",
+ "tokio-tungstenite 0.25.0",
+ "tungstenite 0.25.0",
  "url",
 ]
 
@@ -6670,7 +6690,7 @@ dependencies = [
  "swift-rs",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "time",
 ]
 
@@ -6684,7 +6704,7 @@ dependencies = [
  "serde_repr",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6702,7 +6722,7 @@ dependencies = [
  "serde_repr",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "time",
  "url",
  "win7-notifications",
@@ -6723,7 +6743,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "url",
  "windows 0.58.0",
  "zbus 4.4.0",
@@ -6742,7 +6762,7 @@ dependencies = [
  "sys-locale",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6756,7 +6776,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin-fs",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6769,7 +6789,7 @@ dependencies = [
  "serde_repr",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6795,7 +6815,7 @@ dependencies = [
  "shared_child",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
 ]
 
@@ -6808,7 +6828,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin-deep-link",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tracing",
  "windows-sys 0.59.0",
  "zbus 4.4.0",
@@ -6826,7 +6846,7 @@ dependencies = [
  "sqlx",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "time",
  "tokio",
 ]
@@ -6840,7 +6860,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
  "tracing",
 ]
@@ -6862,7 +6882,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "zeroize",
 ]
 
@@ -6886,7 +6906,7 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tempfile",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "time",
  "tokio",
  "url",
@@ -6907,7 +6927,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
  "tokio-util",
 ]
@@ -6924,9 +6944,9 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.24.0",
 ]
 
 [[package]]
@@ -6939,7 +6959,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
 ]
 
 [[package]]
@@ -6956,7 +6976,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tauri-utils",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "url",
  "windows 0.58.0",
 ]
@@ -7019,7 +7039,7 @@ dependencies = [
  "serde_with",
  "serialize-to-javascript",
  "swift-rs",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "toml 0.8.19",
  "url",
  "urlpattern",
@@ -7098,11 +7118,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.3"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+checksum = "08f5383f3e0071702bf93ab5ee99b52d26936be9dedd9413067cbdcddcb6141a"
 dependencies = [
- "thiserror-impl 2.0.3",
+ "thiserror-impl 2.0.8",
 ]
 
 [[package]]
@@ -7118,9 +7138,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.3"
+version = "2.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
+checksum = "f2f357fcec90b3caef6623a099691be676d033b40a058ac95d2a6ade6fa0c943"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7306,8 +7326,20 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.24.0",
  "webpki-roots",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c28562dd8aea311048ed1ab9372a6b9a59977e1b308afb87c985c1f2b3206938"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.25.0",
 ]
 
 [[package]]
@@ -7486,6 +7518,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "tungstenite"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "326eb16466ed89221beef69dbc94f517ee888bae959895472133924a25f7070e"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.8.5",
+ "sha1",
+ "thiserror 2.0.8",
+ "utf-8",
+]
+
+[[package]]
 name = "typeid"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7630,13 +7680,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b74fc6b57825be3373f7054754755f03ac3a8f5d70015ccad699ba2029956f4a"
 dependencies = [
  "base64 0.22.1",
- "flate2",
  "log",
  "once_cell",
- "rustls",
- "rustls-pki-types",
  "url",
- "webpki-roots",
 ]
 
 [[package]]
@@ -8018,7 +8064,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-websocket",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.24.0",
 ]
 
 [[package]]
@@ -8963,7 +9009,7 @@ dependencies = [
  "flate2",
  "indexmap 2.7.0",
  "memchr",
- "thiserror 2.0.3",
+ "thiserror 2.0.8",
  "zopfli",
 ]
 

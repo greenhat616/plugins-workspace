@@ -25,8 +25,14 @@ serde_json = { workspace = true }
 tauri = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
-tiny_http = "0.12"
 url = "2"
-ureq = "2"
 http = "1"
-hyper = "1"
+hyper = { version = "1", features = ["full"] }
+hyper-tungstenite = "0.16"
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+tokio-tungstenite = "0.25"
+futures-util = "0.3"
+tungstenite = "0.25"
+reqwest = "0.12"
