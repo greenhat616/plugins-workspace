@@ -79,18 +79,20 @@ impl Builder {
         PluginBuilder::new("localhost")
             .setup(move |app, _api| {
                 let asset_resolver = app.asset_resolver();
+                let dev_url = app.config().build.dev_url.clone();
+                let is_dev = tauri::is_dev();
                 std::thread::spawn(move || {
                     let server =
                         Server::http(format!("{host}:{port}")).expect("Unable to spawn server");
                     for req in server.incoming_requests() {
-                        let path = req
+                        let path: String = req
                             .url()
                             .parse::<Uri>()
                             .map(|uri| uri.path().into())
                             .unwrap_or_else(|_| req.url().into());
                         println!("path: {}", path);
                         #[allow(unused_mut)]
-                        if let Some(mut asset) = asset_resolver.get(path) {
+                        if let Some(mut asset) = asset_resolver.get(path.clone()) {
                             let request = Request {
                                 url: req.url().into(),
                             };
@@ -117,10 +119,53 @@ impl Builder {
                             }
                             req.respond(resp).expect("unable to setup response");
                         } else {
-                            println!("asset not found");
+                            if is_dev && dev_url.is_some() {
+                                // try to pipe the request path to the dev server
+                                let dev_url = dev_url.as_ref().unwrap();
+                                let url = dev_url.join(&path).unwrap();
+                                match ureq::get(url.as_str()).call() {
+                                    Ok(response) => {
+                                        let headers = response.headers_names();
+                                        let headers = headers
+                                            .into_iter()
+                                            .map(|header| {
+                                                let value =
+                                                    response.header(&header).unwrap().to_string();
+                                                (header, value)
+                                            })
+                                            .collect::<HashMap<_, _>>();
+                                        let content_len =
+                                            response.header("Content-Length").unwrap();
+                                        let content_len = content_len.parse::<usize>().unwrap();
+                                        let mut buffer = vec![0; content_len];
+                                        response.into_reader().read_to_end(&mut buffer).unwrap();
+
+                                        let mut resp = HttpResponse::from_data(buffer);
+                                        for (header, value) in headers {
+                                            if let Ok(h) =
+                                                Header::from_bytes(header.as_bytes(), value)
+                                            {
+                                                resp.add_header(h);
+                                            }
+                                        }
+                                        req.respond(resp).expect("unable to setup response");
+                                        return;
+                                    }
+                                    Err(e) => {
+                                        log::error!("failed to fetch dev server asset: {}", e);
+                                    }
+                                }
+                            }
+
+                            log::debug!("asset not found");
                             let mut resp = HttpResponse::empty(404);
-                            resp.add_header(Header::from_bytes("Content-Type", "text/html").unwrap());
-                            resp.add_header(Header::from_bytes("Content-Security-Policy", "default-src 'none'").unwrap());
+                            resp.add_header(
+                                Header::from_bytes("Content-Type", "text/html").unwrap(),
+                            );
+                            resp.add_header(
+                                Header::from_bytes("Content-Security-Policy", "default-src 'none'")
+                                    .unwrap(),
+                            );
                             req.respond(resp).expect("unable to setup response");
                         }
                     }

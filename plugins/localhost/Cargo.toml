@@ -26,4 +26,6 @@ tauri = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
 tiny_http = "0.12"
+url = "2"
+ureq = "2"
 http = "1"
