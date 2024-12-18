@@ -152,7 +152,7 @@ impl Builder {
                                             }
                                         }
                                         req.respond(resp).expect("unable to setup response");
-                                        return;
+                                        continue;
                                     }
                                     Err(e) => {
                                         log::error!("failed to fetch dev server asset: {}", e);
