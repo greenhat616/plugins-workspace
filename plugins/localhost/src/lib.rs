@@ -137,10 +137,11 @@ impl Builder {
                                             .collect::<HashMap<_, _>>();
                                         let content_len =
                                             response.header("Content-Length").unwrap();
-                                        let content_len = content_len.parse::<usize>().unwrap();
+                                        let content_len =
+                                            content_len.parse::<usize>().unwrap_or(1024);
                                         let mut buffer = vec![0; content_len];
                                         response.into_reader().read_to_end(&mut buffer).unwrap();
-
+                                        buffer.shrink_to_fit();
                                         let mut resp = HttpResponse::from_data(buffer);
                                         for (header, value) in headers {
                                             if let Ok(h) =
