@@ -123,6 +123,7 @@ impl Builder {
                                 // try to pipe the request path to the dev server
                                 let dev_url = dev_url.as_ref().unwrap();
                                 let url = dev_url.join(&path).unwrap();
+                                log::debug!("fetching dev server asset: {}", url);
                                 match ureq::get(url.as_str()).call() {
                                     Ok(response) => {
                                         let headers = response.headers_names();
