@@ -138,11 +138,12 @@ impl Builder {
                                             .collect::<HashMap<_, _>>();
                                         let content_len =
                                             response.header("Content-Length").unwrap_or("1024");
-                                        let content_len =
-                                            content_len.parse::<usize>().unwrap();
+                                        let content_len = content_len.parse::<usize>().unwrap();
                                         let mut buffer = vec![0; content_len];
                                         response.into_reader().read_to_end(&mut buffer).unwrap();
-                                        buffer.shrink_to_fit();
+                                        // clear buffer start U+0000 chars
+                                        buffer =
+                                            buffer.into_iter().skip_while(|&c| c == 0).collect();
                                         let mut resp = HttpResponse::from_data(buffer);
                                         for (header, value) in headers {
                                             if let Ok(h) =

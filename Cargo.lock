@@ -6643,6 +6643,7 @@ name = "tauri-plugin-localhost"
 version = "2.2.0"
 dependencies = [
  "http",
+ "hyper",
  "log",
  "serde",
  "serde_json",
